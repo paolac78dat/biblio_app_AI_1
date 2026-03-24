@@ -2,13 +2,26 @@ export const config = {
   runtime: "nodejs"
 };
 
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type"); }
+
 function json(res, status, payload) {
+  setCors(res);
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(JSON.stringify(payload));
 }
 
 export default async function handler(req, res) {
+  setCors(res);
+
+  if (req.method === "OPTIONS") {
+    res.statusCode = 204;
+    return res.end();
+  }
+
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed" });
   }
@@ -66,15 +79,16 @@ Regole:
       })
     });
 
+    const raw = await response.text();
+
     if (!response.ok) {
-      const errText = await response.text();
       return json(res, 500, {
         error: "Errore OpenAI",
-        details: errText
+        details: raw
       });
     }
 
-    const data = await response.json();
+    const data = JSON.parse(raw);
 
     let rawText = "";
 
